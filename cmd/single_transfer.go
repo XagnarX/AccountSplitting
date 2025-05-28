@@ -2,8 +2,12 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
+	"fmt"
 	"log"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,6 +30,60 @@ var (
 	singleTransferMaxWallets    int
 	singleTransferDelay         int // 每次转账之间的延迟（秒）
 )
+
+// TransferResult 用于记录转账结果
+type TransferResult struct {
+	Address   string
+	TxHash    string
+	IsSuccess bool
+}
+
+// appendResultToCSV 将单条转账结果追加到 CSV 文件
+func appendResultToCSV(result TransferResult, sourceCSVPath string) error {
+	// 创建 results 目录（如果不存在）
+	if err := os.MkdirAll("results", 0755); err != nil {
+		return fmt.Errorf("创建 results 目录失败: %v", err)
+	}
+
+	// 生成输出文件名
+	sourceFileName := filepath.Base(sourceCSVPath)
+	outputFileName := fmt.Sprintf("results/%s_res.csv", strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName)))
+
+	// 检查文件是否存在
+	fileExists := false
+	if _, err := os.Stat(outputFileName); err == nil {
+		fileExists = true
+	}
+
+	// 打开文件（如果不存在则创建）
+	file, err := os.OpenFile(outputFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("打开结果文件失败: %v", err)
+	}
+	defer file.Close()
+
+	// 创建 CSV writer
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// 如果文件是新创建的，写入表头
+	if !fileExists {
+		if err := writer.Write([]string{"address", "txhash", "转账是否成功"}); err != nil {
+			return fmt.Errorf("写入表头失败: %v", err)
+		}
+	}
+
+	// 写入单条数据
+	success := "是"
+	if !result.IsSuccess {
+		success = "否"
+	}
+	if err := writer.Write([]string{result.Address, result.TxHash, success}); err != nil {
+		return fmt.Errorf("写入数据失败: %v", err)
+	}
+
+	return nil
+}
 
 // SingleTransferCmd 是单地址转账命令
 var SingleTransferCmd = &cobra.Command{
@@ -114,10 +172,19 @@ var SingleTransferCmd = &cobra.Command{
 		for i, wallet := range wallets {
 			log.Printf("\n处理第 %d/%d 个钱包: %s", i+1, totalWallets, wallet.Address)
 
+			result := TransferResult{
+				Address: wallet.Address,
+			}
+
 			// 解析私钥
 			privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(wallet.PrivateKey, "0x"))
 			if err != nil {
 				log.Printf("解析私钥失败: %v", err)
+				result.TxHash = "解析私钥失败"
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
@@ -129,6 +196,11 @@ var SingleTransferCmd = &cobra.Command{
 			nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 			if err != nil {
 				log.Printf("获取 nonce 失败: %v", err)
+				result.TxHash = "获取nonce失败"
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
@@ -144,6 +216,11 @@ var SingleTransferCmd = &cobra.Command{
 				estimatedGas, err := client.EstimateGas(context.Background(), msg)
 				if err != nil {
 					log.Printf("估算 gas 失败: %v", err)
+					result.TxHash = "估算gas失败"
+					result.IsSuccess = false
+					if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+						log.Printf("写入结果文件失败: %v", err)
+					}
 					failCount++
 					continue
 				}
@@ -164,6 +241,11 @@ var SingleTransferCmd = &cobra.Command{
 			chainID, err := client.ChainID(context.Background())
 			if err != nil {
 				log.Printf("获取链 ID 失败: %v", err)
+				result.TxHash = "获取链ID失败"
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
@@ -171,6 +253,11 @@ var SingleTransferCmd = &cobra.Command{
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 			if err != nil {
 				log.Printf("签名交易失败: %v", err)
+				result.TxHash = "签名交易失败"
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
@@ -179,26 +266,44 @@ var SingleTransferCmd = &cobra.Command{
 			err = client.SendTransaction(context.Background(), signedTx)
 			if err != nil {
 				log.Printf("发送交易失败: %v", err)
+				result.TxHash = "发送交易失败"
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
 
-			log.Printf("交易已发送，交易哈希: %s", signedTx.Hash().Hex())
+			result.TxHash = signedTx.Hash().Hex()
+			log.Printf("交易已发送，交易哈希: %s", result.TxHash)
 
 			// 等待交易确认
 			receipt, err := bind.WaitMined(context.Background(), client, signedTx)
 			if err != nil {
 				log.Printf("等待交易确认失败: %v", err)
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
 
 			if receipt.Status == 0 {
 				log.Printf("交易执行失败，交易哈希: %s", receipt.TxHash.Hex())
+				result.IsSuccess = false
+				if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+					log.Printf("写入结果文件失败: %v", err)
+				}
 				failCount++
 				continue
 			}
 
+			result.IsSuccess = true
+			if err := appendResultToCSV(result, singleTransferCSVPath); err != nil {
+				log.Printf("写入结果文件失败: %v", err)
+			}
 			log.Printf("转账成功！交易哈希: %s，实际使用 gas: %d",
 				receipt.TxHash.Hex(),
 				receipt.GasUsed,

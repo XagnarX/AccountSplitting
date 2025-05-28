@@ -27,14 +27,15 @@ go run main.go batch-transfer --csv "wallets/S/k2.csv" --amount 0.00023 --rpc ht
 go run main.go single-transfer --csv "wallets/S/k2.csv" --delay 2 --rpc https://bsc-dataseed2.binance.org/
 go run main.go single-transfer --csv "wallets/S/1w.csv" --target "0x123..." --amount 0.0001 --max-wallets 3 --delay 10
 
-go run main.go batch-transfer --csv "wallets/S/k3.csv" --amount 0.00023 --rpc https://bsc-dataseed3.ninicoin.io/
-go run main.go single-transfer --csv "wallets/S/k3.csv" --delay 2 --rpc https://bsc-dataseed3.ninicoin.io/
 
+go run main.go batch-transfer --csv "wallets/S/k6.csv" --amount 0.00023 --rpc https://bsc-dataseed1.defibit.io/
+go run main.go single-transfer --csv "wallets/S/k6.csv" --delay 2 --rpc https://bsc-dataseed1.defibit.io/
 
+go run main.go batch-transfer --csv "wallets/S/k7.csv" --amount 0.00023 --rpc https://bsc-dataseed2.binance.org/
+go run main.go single-transfer --csv "wallets/S/k7.csv" --delay 2 --rpc https://bsc-dataseed2.binance.org/
 
-go run main.go batch-transfer --csv "wallets/S/k4.csv" --amount 0.00023 --rpc https://bsc-dataseed1.defibit.io/
-go run main.go single-transfer --csv "wallets/S/k4.csv" --delay 2 --rpc https://bsc-dataseed1.defibit.io/
-
+go run main.go batch-transfer --csv "wallets/S/k8.csv" --amount 0.00023 --rpc https://bsc-dataseed3.ninicoin.io/
+go run main.go single-transfer --csv "wallets/S/k8.csv" --delay 2 --rpc https://bsc-dataseed3.ninicoin.io/
 
 # 使用默认rpc分账
 # --sender-csv 指定分账的钱包私钥csv文件 默认：wallets/senders/w1.csv
