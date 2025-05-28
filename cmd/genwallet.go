@@ -11,22 +11,23 @@ import (
 
 var (
 	numWallets int
-	outFile    string
-	dir        string
+	outputFile string
+	walletDir  string
 )
 
-var genWalletCmd = &cobra.Command{
+// GenWalletCmd 是生成钱包的命令
+var GenWalletCmd = &cobra.Command{
 	Use:   "genwallet",
-	Short: "批量生成钱包（私钥+地址）",
+	Short: "批量生成钱包",
 	Run: func(cmd *cobra.Command, args []string) {
-		if dir == "" {
-			dir = "./wallets"
+		if walletDir == "" {
+			walletDir = "./wallets"
 		}
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(walletDir, 0755); err != nil {
 			fmt.Println("创建目录失败:", err)
 			return
 		}
-		outputPath := filepath.Join(dir, outFile)
+		outputPath := filepath.Join(walletDir, outputFile)
 		err := lib.GWalletsAndWirte(numWallets, outputPath)
 		if err != nil {
 			fmt.Println("生成失败:", err)
@@ -37,8 +38,7 @@ var genWalletCmd = &cobra.Command{
 }
 
 func init() {
-	genWalletCmd.Flags().IntVarP(&numWallets, "number", "n", 10, "生成钱包数量")
-	genWalletCmd.Flags().StringVarP(&outFile, "output", "o", "secret.csv", "输出文件名")
-	genWalletCmd.Flags().StringVarP(&dir, "dir", "d", "./wallets", "输出目录")
-	rootCmd.AddCommand(genWalletCmd)
+	GenWalletCmd.Flags().IntVarP(&numWallets, "number", "n", 10, "生成钱包数量")
+	GenWalletCmd.Flags().StringVarP(&outputFile, "output", "o", "wallets.csv", "输出文件名")
+	GenWalletCmd.Flags().StringVarP(&walletDir, "dir", "d", "./wallets", "输出目录")
 }

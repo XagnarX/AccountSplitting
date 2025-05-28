@@ -15,7 +15,8 @@ var (
 	mnemonicDir string
 )
 
-var genMnemonicCmd = &cobra.Command{
+// GenMnemonicCmd 是生成助记词和钱包的命令
+var GenMnemonicCmd = &cobra.Command{
 	Use:   "genmnemonic",
 	Short: "批量生成带助记词的钱包",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -37,8 +38,7 @@ var genMnemonicCmd = &cobra.Command{
 }
 
 func init() {
-	genMnemonicCmd.Flags().IntVarP(&numMws, "number", "n", 10, "生成钱包数量")
-	genMnemonicCmd.Flags().StringVarP(&outCsv, "output", "o", "mnemonic.csv", "输出文件名")
-	genMnemonicCmd.Flags().StringVarP(&mnemonicDir, "dir", "d", "./wallets", "输出目录")
-	rootCmd.AddCommand(genMnemonicCmd)
+	GenMnemonicCmd.Flags().IntVarP(&numMws, "number", "n", 10, "生成钱包数量")
+	GenMnemonicCmd.Flags().StringVarP(&outCsv, "output", "o", "mnemonic.csv", "输出文件名")
+	GenMnemonicCmd.Flags().StringVarP(&mnemonicDir, "dir", "d", "./wallets", "输出目录")
 }

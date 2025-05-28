@@ -1,0 +1,16 @@
+# 忽略 wallets 目录及其所有内容
+wallets/
+wallets/*
+
+# 忽略所有 CSV 文件
+*.csv
+
+# 忽略 IDE 相关文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db 
